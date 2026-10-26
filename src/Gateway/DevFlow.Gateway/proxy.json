@@ -1,0 +1,32 @@
+{
+  "ReverseProxy": {
+    "Routes": {
+      "identity-register": {
+        "ClusterId": "identity",
+        "Match": { "Path": "/identity/api/v1/auth/register", "Methods": [ "POST" ] },
+        "CorsPolicy": "ConfiguredCors",
+        "Timeout": "00:00:30",
+        "MaxRequestBodySize": 16384,
+        "Transforms": [ { "PathRemovePrefix": "/identity" }, { "X-Forwarded": "Set", "Prefix": "Remove" }, { "RequestHeaderRemove": "Forwarded" } ]
+      },
+      "notification-resend": {
+        "ClusterId": "notification",
+        "Match": { "Path": "/notification/api/v1/webhooks/email/resend", "Methods": [ "POST" ] },
+        "Timeout": "00:00:15",
+        "MaxRequestBodySize": 65536,
+        "Transforms": [ { "PathRemovePrefix": "/notification" }, { "X-Forwarded": "Set", "Prefix": "Remove" }, { "RequestHeaderRemove": "Forwarded" } ]
+      }
+    },
+    "Clusters": {
+      "identity": {
+        "HttpClient": { "EnableMultipleHttp2Connections": true },
+        "HttpRequest": { "ActivityTimeout": "00:00:30" },
+        "Destinations": { "identity-api": { "Address": "http://127.0.0.1:8081/" } }
+      },
+      "notification": {
+        "HttpRequest": { "ActivityTimeout": "00:00:30" },
+        "Destinations": { "notification-api": { "Address": "http://127.0.0.1:8082/" } }
+      }
+    }
+  }
+}

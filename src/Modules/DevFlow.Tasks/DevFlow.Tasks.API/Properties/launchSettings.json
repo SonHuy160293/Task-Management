@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "DevFlow.Tasks.API": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:51079;http://localhost:51080"
+    }
+  }
+}

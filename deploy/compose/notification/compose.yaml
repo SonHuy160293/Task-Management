@@ -1,0 +1,172 @@
+x-job: &job
+  image: ${DEVFLOW_SETUP_IMAGE:?Set DEVFLOW_SETUP_IMAGE}
+  restart: "no"
+  logging: &logging
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+x-runtime: &runtime
+  restart: unless-stopped
+  stop_grace_period: 45s
+  init: true
+  read_only: true
+  tmpfs: ["/tmp:rw,noexec,nosuid,size=64m,mode=1777"]
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  logging: *logging
+  mem_limit: 512m
+services:
+  secret-stage:
+    <<: *job
+    command: [stage-secrets, notification]
+    volumes:
+      - type: bind
+        source: ${DEVFLOW_SECRETS_DIR:?Set DEVFLOW_SECRETS_DIR}
+        target: /source
+        read_only: true
+        bind: {create_host_path: false}
+      - database-secrets:/staged/database
+      - migration-secrets:/staged/migration
+      - api-secrets:/staged/api
+      - worker-secrets:/staged/worker
+  postgres:
+    image: ${DEVFLOW_POSTGRES_IMAGE:?Set DEVFLOW_POSTGRES_IMAGE}
+    environment:
+      POSTGRES_USER: notification_admin
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/admin-password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    command: [postgres, -c, fsync=on, -c, full_page_writes=on, -c, synchronous_commit=on]
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - database-secrets:/run/secrets:ro
+    networks: [backend]
+    depends_on: {secret-stage: {condition: service_completed_successfully}}
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U notification_admin -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
+    restart: unless-stopped
+    stop_grace_period: 45s
+    logging: *logging
+    mem_limit: 768m
+  db-bootstrap:
+    <<: *job
+    command: [db-bootstrap, notification]
+    volumes:
+      - type: bind
+        source: ${DEVFLOW_SECRETS_DIR}
+        target: /source
+        read_only: true
+        bind: {create_host_path: false}
+    networks: [backend]
+    depends_on: {postgres: {condition: service_healthy}}
+  migration:
+    image: ${DEVFLOW_NOTIFICATION_MIGRATION_IMAGE:?Set migration image}
+    environment:
+      DOTNET_ENVIRONMENT: ${DEVFLOW_ENVIRONMENT:-Production}
+      ConnectionStrings__NotificationDb: Host=postgres;Database=DevFlowNotification;Username=notification_migrator;Include Error Detail=false
+      Database__PasswordFile: /run/secrets/database-password
+      Observability__Enabled: "false"
+    volumes: ["migration-secrets:/run/secrets:ro"]
+    networks: [backend]
+    depends_on: {db-bootstrap: {condition: service_completed_successfully}}
+    restart: "no"
+    logging: *logging
+    mem_limit: 512m
+  db-grants:
+    <<: *job
+    command: [db-grants, notification]
+    volumes:
+      - type: bind
+        source: ${DEVFLOW_SECRETS_DIR}
+        target: /source
+        read_only: true
+        bind: {create_host_path: false}
+    networks: [backend]
+    depends_on: {migration: {condition: service_completed_successfully}}
+  api:
+    <<: *runtime
+    image: ${DEVFLOW_NOTIFICATION_API_IMAGE:?Set DEVFLOW_NOTIFICATION_API_IMAGE}
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${DEVFLOW_ENVIRONMENT:-Production}
+      DOTNET_ENVIRONMENT: ${DEVFLOW_ENVIRONMENT:-Production}
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ForwardedHeaders__KnownProxies__0: ${DEVFLOW_GATEWAY_IP:?Set DEVFLOW_GATEWAY_IP}
+      ConnectionStrings__NotificationDb: Host=postgres;Database=DevFlowNotification;Username=notification_runtime;Include Error Detail=false
+      Database__PasswordFile: /run/secrets/database-password
+      Notification__EmailDelivery__Mode: ${DEVFLOW_EMAIL_MODE:-Disabled}
+      Notification__EmailDelivery__RecipientHashKeyFile: /run/secrets/recipient-hmac.secret
+      Notification__EmailDelivery__WebhookSecretFile: /run/secrets/resend-webhook.secret
+      Observability__Enabled: ${DEVFLOW_OBSERVABILITY_ENABLED:-false}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: DevFlow.Notification.API
+    volumes: ["api-secrets:/run/secrets:ro"]
+    networks:
+      backend: {}
+      messaging: {}
+      http:
+        aliases: [notification-api]
+    depends_on: {db-grants: {condition: service_completed_successfully}}
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, --max-time, "5", http://localhost:8080/health/ready]
+      interval: 10s
+      timeout: 6s
+      retries: 12
+      start_period: 15s
+  worker:
+    <<: *runtime
+    image: ${DEVFLOW_NOTIFICATION_WORKER_IMAGE:?Set DEVFLOW_NOTIFICATION_WORKER_IMAGE}
+    environment:
+      DOTNET_ENVIRONMENT: ${DEVFLOW_ENVIRONMENT:-Production}
+      ConnectionStrings__NotificationDb: Host=postgres;Database=DevFlowNotification;Username=notification_runtime;Include Error Detail=false
+      Database__PasswordFile: /run/secrets/database-password
+      Messaging__Host: ${DEVFLOW_MESSAGING_HOST:?Set DEVFLOW_MESSAGING_HOST}
+      Messaging__Port: ${DEVFLOW_MESSAGING_PORT:-5671}
+      Messaging__VirtualHost: ${DEVFLOW_MESSAGING_VIRTUAL_HOST:-devflow}
+      Messaging__Username: notification
+      Messaging__PasswordFile: /run/secrets/broker-password
+      Messaging__Development: ${DEVFLOW_MESSAGING_DEVELOPMENT:-false}
+      Messaging__UseTls: ${DEVFLOW_MESSAGING_USE_TLS:-true}
+      Messaging__QuorumSize: ${DEVFLOW_MESSAGING_QUORUM_SIZE:-3}
+      Notification__EmailDelivery__Mode: ${DEVFLOW_EMAIL_MODE:-Disabled}
+      Notification__EmailDelivery__Development: "false"
+      Notification__EmailDelivery__DomainVerified: ${DEVFLOW_EMAIL_DOMAIN_VERIFIED:-false}
+      Notification__EmailDelivery__Sender: ${DEVFLOW_EMAIL_SENDER:-DevFlow <auth@example.test>}
+      Notification__EmailDelivery__FrontendOrigin: ${DEVFLOW_FRONTEND_ORIGIN:?Set DEVFLOW_FRONTEND_ORIGIN}
+      Notification__EmailDelivery__KeyDirectory: /run/secrets/keys
+      Notification__EmailDelivery__ActiveKeyId: ${DEVFLOW_EMAIL_ACTIVE_KEY_ID:-local-v1}
+      Notification__EmailDelivery__RecipientHashKeyFile: /run/secrets/keys/recipient-hmac.secret
+      Notification__EmailDelivery__ApiKeyFile: /run/secrets/keys/resend-api.secret
+      Notification__EmailDelivery__WebhookSecretFile: /run/secrets/keys/resend-webhook.secret
+      Notification__EmailDelivery__MailpitHost: ${DEVFLOW_MAILPIT_HOST:-mailpit}
+      Notification__EmailDelivery__MailpitPort: ${DEVFLOW_MAILPIT_PORT:-1025}
+      Notification__EmailDelivery__DailyLimit: ${DEVFLOW_EMAIL_DAILY_LIMIT:-100}
+      Notification__EmailDelivery__MonthlyLimit: ${DEVFLOW_EMAIL_MONTHLY_LIMIT:-3000}
+      Observability__Enabled: ${DEVFLOW_OBSERVABILITY_ENABLED:-false}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: DevFlow.Notification.Worker
+    volumes: ["worker-secrets:/run/secrets:ro"]
+    networks: [backend, messaging]
+    depends_on: {db-grants: {condition: service_completed_successfully}}
+    healthcheck:
+      test: [CMD, /opt/devflow/worker-health.sh]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+networks:
+  http:
+    external: true
+    name: ${DEVFLOW_STACK:?Set DEVFLOW_STACK}-http
+  backend: {}
+  messaging:
+    external: true
+    name: ${DEVFLOW_STACK:?Set DEVFLOW_STACK}-messaging
+volumes:
+  postgres-data: {}
+  database-secrets: {}
+  migration-secrets: {}
+  api-secrets: {}
+  worker-secrets: {}

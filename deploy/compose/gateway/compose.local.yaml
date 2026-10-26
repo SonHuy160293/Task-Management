@@ -1,0 +1,9 @@
+services:
+  gateway:
+    build:
+      context: ../../..
+      dockerfile: Dockerfile.modules
+      target: gateway
+      args:
+        DOTNET_SDK_IMAGE: ${DEVFLOW_DOTNET_SDK_IMAGE:?Set DEVFLOW_DOTNET_SDK_IMAGE}
+        DOTNET_RUNTIME_IMAGE: ${DEVFLOW_DOTNET_RUNTIME_IMAGE:?Set DEVFLOW_DOTNET_RUNTIME_IMAGE}

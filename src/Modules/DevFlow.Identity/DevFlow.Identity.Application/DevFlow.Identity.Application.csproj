@@ -1,0 +1,8 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../../Contracts/DevFlow.Notification.Contracts/DevFlow.Notification.Contracts.csproj" />
+    <ProjectReference Include="../DevFlow.Identity.Domain/DevFlow.Identity.Domain.csproj" />
+    <ProjectReference Include="../../../BuildingBlocks/DevFlow.SharedKernel/DevFlow.SharedKernel.csproj" />
+    <ProjectReference Include="../../../Contracts/DevFlow.Identity.Contracts/DevFlow.Identity.Contracts.csproj" />
+  </ItemGroup>
+</Project>

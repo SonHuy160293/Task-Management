@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk"><ItemGroup>
+<ProjectReference Include="../DevFlow.Notification.Domain/DevFlow.Notification.Domain.csproj" />
+<ProjectReference Include="../../../Contracts/DevFlow.Notification.Contracts/DevFlow.Notification.Contracts.csproj" />
+<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+</ItemGroup></Project>

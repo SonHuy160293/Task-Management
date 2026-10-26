@@ -1,0 +1,19 @@
+# Shared network only on servers. Local broker, topology jobs and Mailpit are
+# added by compose.local.yaml; production broker provisioning is operator-owned.
+services:
+  network-init:
+    image: ${DEVFLOW_SETUP_IMAGE:?Set DEVFLOW_SETUP_IMAGE}
+    command: [network-init]
+    restart: "no"
+    networks: [messaging, http]
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+networks:
+  http:
+    name: ${DEVFLOW_STACK:?Set DEVFLOW_STACK}-http
+    ipam:
+      config:
+        - subnet: ${DEVFLOW_HTTP_SUBNET:?Set DEVFLOW_HTTP_SUBNET}
+  messaging:
+    name: ${DEVFLOW_STACK:?Set DEVFLOW_STACK}-messaging

@@ -1,0 +1,41 @@
+services:
+  gateway:
+    image: ${DEVFLOW_GATEWAY_IMAGE:?Set DEVFLOW_GATEWAY_IMAGE}
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${DEVFLOW_ENVIRONMENT:-Production}
+      DOTNET_ENVIRONMENT: ${DEVFLOW_ENVIRONMENT:-Production}
+      ASPNETCORE_HTTP_PORTS: "8080"
+      AllowedHosts: ${DEVFLOW_GATEWAY_PUBLIC_HOST:?Set DEVFLOW_GATEWAY_PUBLIC_HOST};localhost;127.0.0.1
+      ForwardedHeaders__KnownProxies__0: ${DEVFLOW_INGRESS_PROXY_IP:?Set the ingress peer IP seen by the gateway}
+      ForwardedHeaders__AllowedHosts__0: ${DEVFLOW_GATEWAY_PUBLIC_HOST}
+      Cors__AllowedOrigins__0: ${DEVFLOW_FRONTEND_ORIGIN:?Set DEVFLOW_FRONTEND_ORIGIN}
+      ReverseProxy__Clusters__identity__Destinations__identity-api__Address: http://identity-api:8080/
+      ReverseProxy__Clusters__notification__Destinations__notification-api__Address: http://notification-api:8080/
+      Observability__Enabled: ${DEVFLOW_OBSERVABILITY_ENABLED:-false}
+      OTEL_SERVICE_NAME: DevFlow.Gateway
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    networks:
+      http:
+        ipv4_address: ${DEVFLOW_GATEWAY_IP:?Set DEVFLOW_GATEWAY_IP}
+    ports: ["127.0.0.1:${DEVFLOW_GATEWAY_PORT:-8080}:8080"]
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, --max-time, "5", http://localhost:8080/health/ready]
+      interval: 10s
+      timeout: 6s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+    stop_grace_period: 45s
+    init: true
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+networks:
+  http:
+    external: true
+    name: ${DEVFLOW_STACK:?Set DEVFLOW_STACK}-http

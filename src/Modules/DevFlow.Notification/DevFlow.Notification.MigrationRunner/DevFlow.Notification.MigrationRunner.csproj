@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><UserSecretsId>devflow-notification-migrationrunner</UserSecretsId></PropertyGroup><ItemGroup>
+<ProjectReference Include="../DevFlow.Notification.Infrastructure/DevFlow.Notification.Infrastructure.csproj" />
+<PackageReference Include="Microsoft.Extensions.Hosting" />
+</ItemGroup></Project>

@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><UserSecretsId>devflow-identity-worker</UserSecretsId></PropertyGroup><ItemGroup>
+<ProjectReference Include="../DevFlow.Identity.Infrastructure/DevFlow.Identity.Infrastructure.csproj" />
+<ProjectReference Include="../../../BuildingBlocks/DevFlow.Observability/DevFlow.Observability.csproj" />
+<PackageReference Include="Microsoft.Extensions.Hosting" />
+</ItemGroup><ItemGroup><None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" /></ItemGroup></Project>

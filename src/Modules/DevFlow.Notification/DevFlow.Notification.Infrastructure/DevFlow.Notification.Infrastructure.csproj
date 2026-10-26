@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk"><ItemGroup>
+<ProjectReference Include="../DevFlow.Notification.Application/DevFlow.Notification.Application.csproj" />
+<ProjectReference Include="../../../BuildingBlocks/DevFlow.Messaging/DevFlow.Messaging.csproj" />
+<ProjectReference Include="../../../BuildingBlocks/DevFlow.AspNetCore/DevFlow.AspNetCore.csproj" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+<PackageReference Include="Svix" />
+</ItemGroup></Project>

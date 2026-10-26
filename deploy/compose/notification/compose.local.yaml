@@ -1,0 +1,48 @@
+services:
+  secret-stage:
+    build: &tools-build
+      context: ../../..
+      dockerfile: Dockerfile.deploy
+      args: {POSTGRES_IMAGE: "${DEVFLOW_POSTGRES_IMAGE}"}
+  db-bootstrap: {build: *tools-build}
+  db-grants: {build: *tools-build}
+  postgres:
+    ports: ["127.0.0.1:${DEVFLOW_NOTIFICATION_POSTGRES_PORT:-15432}:5432"]
+  migration:
+    build:
+      context: ../../..
+      dockerfile: Dockerfile.modules
+      target: notification-migration
+      args:
+        DOTNET_SDK_IMAGE: ${DEVFLOW_DOTNET_SDK_IMAGE:?Set DEVFLOW_DOTNET_SDK_IMAGE}
+        DOTNET_RUNTIME_IMAGE: ${DEVFLOW_DOTNET_RUNTIME_IMAGE:?Set DEVFLOW_DOTNET_RUNTIME_IMAGE}
+    environment:
+      DOTNET_ENVIRONMENT: Development
+  api:
+    ports: ["127.0.0.1:${DEVFLOW_NOTIFICATION_API_PORT:-8082}:8080"]
+    build:
+      context: ../../..
+      dockerfile: Dockerfile.modules
+      target: notification-api
+      args:
+        DOTNET_SDK_IMAGE: ${DEVFLOW_DOTNET_SDK_IMAGE:?Set DEVFLOW_DOTNET_SDK_IMAGE}
+        DOTNET_RUNTIME_IMAGE: ${DEVFLOW_DOTNET_RUNTIME_IMAGE:?Set DEVFLOW_DOTNET_RUNTIME_IMAGE}
+    environment:
+      DOTNET_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: Development
+  worker:
+    build:
+      context: ../../..
+      dockerfile: Dockerfile.modules
+      target: notification-worker
+      args:
+        DOTNET_SDK_IMAGE: ${DEVFLOW_DOTNET_SDK_IMAGE:?Set DEVFLOW_DOTNET_SDK_IMAGE}
+        DOTNET_RUNTIME_IMAGE: ${DEVFLOW_DOTNET_RUNTIME_IMAGE:?Set DEVFLOW_DOTNET_RUNTIME_IMAGE}
+    environment:
+      DOTNET_ENVIRONMENT: Development
+      Messaging__Host: rabbitmq
+      Messaging__Port: "5672"
+      Messaging__Development: "true"
+      Messaging__UseTls: "false"
+      Messaging__QuorumSize: "1"
+      Notification__EmailDelivery__Development: "true"

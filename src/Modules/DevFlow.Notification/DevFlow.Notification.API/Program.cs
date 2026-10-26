@@ -1,0 +1,25 @@
+using DevFlow.AspNetCore.Middleware;
+using DevFlow.AspNetCore.DependencyInjection;
+using DevFlow.Notification.API.Webhooks;
+using DevFlow.Notification.Application;
+using DevFlow.Notification.Infrastructure;
+using DevFlow.Observability;
+using Microsoft.Extensions.Logging;
+
+var builder = WebApplication.CreateBuilder(args);
+builder.AddDevFlowObservability();
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.None);
+builder.Services.AddNotificationApplication().AddNotificationPersistence(builder.Configuration).AddNotificationWebhookSecurity(builder.Configuration);
+builder.Services.AddControllers();
+builder.Services.AddTrustedForwarding(builder.Configuration);
+builder.Services.AddScoped<ResendSignatureFilter>();
+builder.Services.AddHealthChecks().AddCheck<DevFlow.Notification.API.DatabaseReadinessCheck>("database", tags: ["ready"]);
+var app = builder.Build();
+app.UseForwardedHeaders();
+app.UseCorrelationId();
+app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
+app.MapControllers();
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
+app.Run();
+public partial class Program;

@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Local": {
+      "commandName": "Project",
+      "applicationUrl": "http://localhost:8080",
+      "environmentVariables": { "ASPNETCORE_ENVIRONMENT": "Development", "DOTNET_ENVIRONMENT": "Development" }
+    }
+  }
+}

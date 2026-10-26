@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../DevFlow.Tasks.Application/DevFlow.Tasks.Application.csproj" />
+    <ProjectReference Include="../DevFlow.Tasks.Domain/DevFlow.Tasks.Domain.csproj" />
+    <ProjectReference Include="../../../BuildingBlocks/DevFlow.EntityFrameworkCore/DevFlow.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../../../BuildingBlocks/DevFlow.AspNetCore/DevFlow.AspNetCore.csproj" />
+  </ItemGroup>
+</Project>

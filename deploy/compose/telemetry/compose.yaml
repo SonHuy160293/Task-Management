@@ -1,0 +1,82 @@
+x-logging: &logging
+  driver: json-file
+  options: {max-size: "10m", max-file: "3"}
+services:
+  secret-stage:
+    image: ${DEVFLOW_SETUP_IMAGE:?Set DEVFLOW_SETUP_IMAGE}
+    entrypoint: [/opt/devflow/setup/stage-grafana.sh]
+    volumes:
+      - type: bind
+        source: ${DEVFLOW_SECRETS_DIR:?Set DEVFLOW_SECRETS_DIR}
+        target: /source
+        read_only: true
+        bind: {create_host_path: false}
+      - grafana-secrets:/runtime
+    restart: "no"
+    logging: *logging
+  otel-collector:
+    image: ${DEVFLOW_COLLECTOR_IMAGE}
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes: ["../../observability/collector.yaml:/etc/otelcol/config.yaml:ro"]
+    networks: [default, messaging, http]
+    ports:
+      - "127.0.0.1:${DEVFLOW_OTLP_PORT:-4317}:4317"
+      - "127.0.0.1:${DEVFLOW_OTLP_HTTP_PORT:-4318}:4318"
+    restart: unless-stopped
+    mem_limit: 512m
+    logging: *logging
+  loki:
+    image: ${DEVFLOW_LOKI_IMAGE}
+    command: ["-config.file=/etc/loki/config.yaml"]
+    volumes: ["../../observability/loki.yaml:/etc/loki/config.yaml:ro", "loki-data:/loki"]
+    restart: unless-stopped
+    mem_limit: 512m
+    logging: *logging
+  tempo:
+    image: ${DEVFLOW_TEMPO_IMAGE}
+    command: ["-config.file=/etc/tempo/config.yaml"]
+    volumes: ["../../observability/tempo.yaml:/etc/tempo/config.yaml:ro", "tempo-data:/var/tempo"]
+    restart: unless-stopped
+    mem_limit: 512m
+    logging: *logging
+  prometheus:
+    image: ${DEVFLOW_PROMETHEUS_IMAGE}
+    command: ["--config.file=/etc/prometheus/prometheus.yaml", "--storage.tsdb.path=/prometheus", "--storage.tsdb.retention.time=7d", "--enable-feature=exemplar-storage"]
+    volumes: ["../../observability/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro", "prometheus-data:/prometheus"]
+    restart: unless-stopped
+    mem_limit: 512m
+    logging: *logging
+  grafana:
+    image: ${DEVFLOW_GRAFANA_IMAGE}
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/admin-password
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+    volumes:
+      - grafana-secrets:/run/secrets:ro
+      - "../../observability/grafana/provisioning:/etc/grafana/provisioning:ro"
+      - "../../observability/grafana/dashboards:/var/lib/grafana/dashboards:ro"
+      - grafana-data:/var/lib/grafana
+    depends_on: {secret-stage: {condition: service_completed_successfully}}
+    ports: ["127.0.0.1:${DEVFLOW_GRAFANA_PORT:-13000}:3000"]
+    restart: unless-stopped
+    mem_limit: 512m
+    logging: *logging
+networks:
+  http:
+    external: true
+    name: ${DEVFLOW_STACK:?Set DEVFLOW_STACK}-http
+  messaging:
+    external: true
+    name: ${DEVFLOW_STACK:?Set DEVFLOW_STACK}-messaging
+volumes:
+  grafana-secrets: {}
+  grafana-data: {}
+  loki-data: {}
+  tempo-data: {}
+  prometheus-data: {}

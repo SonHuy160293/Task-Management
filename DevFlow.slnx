@@ -1,0 +1,47 @@
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/DevFlow.Gateway.Tests/DevFlow.Gateway.Tests.csproj" />
+    <Project Path="tests/DevFlow.Notification.Tests/DevFlow.Notification.Tests.csproj" />
+    <Project Path="tests/DevFlow.Identity.Tests/DevFlow.Identity.Tests.csproj" />
+    <Project Path="tests/DevFlow.AspNetCore.HttpClient.Tests/DevFlow.AspNetCore.HttpClient.Tests.csproj" />
+  </Folder>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Gateway/">
+    <Project Path="src/Gateway/DevFlow.Gateway/DevFlow.Gateway.csproj" />
+  </Folder>
+  <Folder Name="/src/Contracts/">
+    <Project Path="src/Contracts/DevFlow.Notification.Contracts/DevFlow.Notification.Contracts.csproj" />
+    <Project Path="src/Contracts/DevFlow.Identity.Contracts/DevFlow.Identity.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/DevFlow.Messaging/DevFlow.Messaging.csproj" />
+    <Project Path="src/BuildingBlocks/DevFlow.AspNetCore/DevFlow.AspNetCore.csproj" />
+    <Project Path="src/BuildingBlocks/DevFlow.EntityFrameworkCore/DevFlow.EntityFrameworkCore.csproj" />
+    <Project Path="src/BuildingBlocks/DevFlow.Observability/DevFlow.Observability.csproj" />
+    <Project Path="src/BuildingBlocks/DevFlow.SharedKernel/DevFlow.SharedKernel.csproj" />
+    <Project Path="src/BuildingBlocks/DevFlow.Utilities/DevFlow.Utilities.csproj" Id="f3ba5504-3426-46f6-a657-3f56791ee11b" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/DevFlow.Identity/">
+    <Project Path="src/Modules/DevFlow.Identity/DevFlow.Identity.Worker/DevFlow.Identity.Worker.csproj" />
+    <Project Path="src/Modules/DevFlow.Identity/DevFlow.Identity.API/DevFlow.Identity.API.csproj" />
+    <Project Path="src/Modules/DevFlow.Identity/DevFlow.Identity.Application/DevFlow.Identity.Application.csproj" />
+    <Project Path="src/Modules/DevFlow.Identity/DevFlow.Identity.Domain/DevFlow.Identity.Domain.csproj" />
+    <Project Path="src/Modules/DevFlow.Identity/DevFlow.Identity.Infrastructure/DevFlow.Identity.Infrastructure.csproj" />
+    <Project Path="src/Modules/DevFlow.Identity/DevFlow.Identity.MigrationRunner/DevFlow.Identity.MigrationRunner.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/DevFlow.Notification/">
+    <Project Path="src/Modules/DevFlow.Notification/DevFlow.Notification.Domain/DevFlow.Notification.Domain.csproj" />
+    <Project Path="src/Modules/DevFlow.Notification/DevFlow.Notification.Application/DevFlow.Notification.Application.csproj" />
+    <Project Path="src/Modules/DevFlow.Notification/DevFlow.Notification.Infrastructure/DevFlow.Notification.Infrastructure.csproj" />
+    <Project Path="src/Modules/DevFlow.Notification/DevFlow.Notification.API/DevFlow.Notification.API.csproj" />
+    <Project Path="src/Modules/DevFlow.Notification/DevFlow.Notification.Worker/DevFlow.Notification.Worker.csproj" />
+    <Project Path="src/Modules/DevFlow.Notification/DevFlow.Notification.MigrationRunner/DevFlow.Notification.MigrationRunner.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/DevFlow.Tasks/">
+    <Project Path="src/Modules/DevFlow.Tasks/DevFlow.Tasks.API/DevFlow.Tasks.API.csproj" />
+    <Project Path="src/Modules/DevFlow.Tasks/DevFlow.Tasks.Application/DevFlow.Tasks.Application.csproj" />
+    <Project Path="src/Modules/DevFlow.Tasks/DevFlow.Tasks.Domain/DevFlow.Tasks.Domain.csproj" />
+    <Project Path="src/Modules/DevFlow.Tasks/DevFlow.Tasks.Infrastructure/DevFlow.Tasks.Infrastructure.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,6 @@
+ARG POSTGRES_IMAGE=postgres:18-bookworm@sha256:bbf83594798e144bff365a9c191c5d779f181fb3135902064ab8ff11918020fc
+FROM ${POSTGRES_IMAGE}
+RUN apt-get update && apt-get install -y --no-install-recommends curl jq openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+COPY deploy/setup/ /opt/devflow/setup/
+RUN chmod 755 /opt/devflow/setup/*.sh
+ENTRYPOINT ["/opt/devflow/setup/dispatch.sh"]

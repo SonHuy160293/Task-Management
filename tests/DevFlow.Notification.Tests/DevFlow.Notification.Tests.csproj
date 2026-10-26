@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><IsTestProject>true</IsTestProject><IsPackable>false</IsPackable></PropertyGroup><ItemGroup>
+<ProjectReference Include="../../src/Modules/DevFlow.Notification/DevFlow.Notification.API/DevFlow.Notification.API.csproj" />
+<ProjectReference Include="../../src/Modules/DevFlow.Identity/DevFlow.Identity.Infrastructure/DevFlow.Identity.Infrastructure.csproj" />
+<PackageReference Include="Microsoft.NET.Test.Sdk" /><PackageReference Include="xunit" />
+<PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+</ItemGroup></Project>

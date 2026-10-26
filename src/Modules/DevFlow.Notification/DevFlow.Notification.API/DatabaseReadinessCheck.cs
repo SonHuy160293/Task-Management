@@ -1,0 +1,22 @@
+using DevFlow.Notification.Infrastructure.Persistence;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+
+namespace DevFlow.Notification.API;
+public sealed class DatabaseReadinessCheck(NotificationDbContext db) : IHealthCheck
+{
+    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await db.Database.CanConnectAsync(cancellationToken) ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy("Database unavailable.");
+        }
+        catch (OperationCanceledException)when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return HealthCheckResult.Unhealthy("Database unavailable.");
+        }
+    }
+}

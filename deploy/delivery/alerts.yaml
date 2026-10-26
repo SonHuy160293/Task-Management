@@ -1,0 +1,29 @@
+# Load into the operational Prometheus rule_files configuration after enabling OTLP.
+groups:
+  - name: devflow-delivery
+    rules:
+      - alert: DeliveryOutboxStalled
+        expr: devflow_outbox_oldest_pending_age_seconds > 300
+        for: 2m
+        labels: { severity: warning }
+        annotations: { summary: "Committed delivery events are waiting for publication" }
+      - alert: DeliveryDeadLetters
+        expr: devflow_outbox_dead_letters > 0 or devflow_notification_dead_letters > 0
+        for: 1m
+        labels: { severity: critical }
+        annotations: { summary: "Delivery requires operator investigation" }
+      - alert: DeliveryReceiptMissing
+        expr: devflow_outbox_receipts_missing > 0
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: "Broker publication has no durable Notification receipt" }
+      - alert: DeliveryEmailStalled
+        expr: devflow_notification_oldest_pending_age_seconds > 300
+        for: 2m
+        labels: { severity: warning }
+        annotations: { summary: "Accepted email jobs are not progressing" }
+      - alert: DeliveryWorkerHeartbeatStale
+        expr: devflow_outbox_worker_heartbeat_age_seconds > 60 or devflow_notification_worker_heartbeat_age_seconds > 60
+        for: 1m
+        labels: { severity: critical }
+        annotations: { summary: "Delivery worker is not completing scans" }

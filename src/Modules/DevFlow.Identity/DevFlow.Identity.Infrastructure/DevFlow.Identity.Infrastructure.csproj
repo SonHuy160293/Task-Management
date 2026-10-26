@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../../BuildingBlocks/DevFlow.Messaging/DevFlow.Messaging.csproj" />
+    <ProjectReference Include="../../../Contracts/DevFlow.Notification.Contracts/DevFlow.Notification.Contracts.csproj" />
+    <ProjectReference Include="../DevFlow.Identity.Application/DevFlow.Identity.Application.csproj" />
+    <ProjectReference Include="../DevFlow.Identity.Domain/DevFlow.Identity.Domain.csproj" />
+    <ProjectReference Include="../../../BuildingBlocks/DevFlow.EntityFrameworkCore/DevFlow.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\DevFlow.Utilities\DevFlow.Utilities.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Konscious.Security.Cryptography.Argon2" />
+    <PackageReference Include="StackExchange.Redis" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

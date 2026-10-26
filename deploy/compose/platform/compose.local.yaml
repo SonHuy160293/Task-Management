@@ -1,0 +1,103 @@
+x-job: &job
+  image: ${DEVFLOW_SETUP_IMAGE:?Set DEVFLOW_SETUP_IMAGE}
+  restart: "no"
+  logging: &logging
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+services:
+  network-init:
+    build: &tools-build
+      context: ../../..
+      dockerfile: Dockerfile.deploy
+      args: {POSTGRES_IMAGE: "${DEVFLOW_POSTGRES_IMAGE}"}
+  secret-stage:
+    <<: *job
+    build: *tools-build
+    command: [stage-secrets, platform]
+    volumes:
+      - type: bind
+        source: ${DEVFLOW_SECRETS_DIR}
+        target: /source
+        read_only: true
+        bind: {create_host_path: false}
+      - broker-secrets:/staged/broker
+      - topology-secrets:/staged/topology
+  rabbitmq:
+    image: ${DEVFLOW_RABBITMQ_IMAGE:?Set DEVFLOW_RABBITMQ_IMAGE}
+    hostname: rabbitmq
+    user: "999:999"
+    environment:
+      RABBITMQ_DEFAULT_USER: devflow-admin
+      RABBITMQ_DEFAULT_VHOST: ${DEVFLOW_MESSAGING_VIRTUAL_HOST:-devflow}
+    entrypoint: [/bin/sh, -ec]
+    command: ['export RABBITMQ_DEFAULT_PASS="$$(cat /run/secrets/broker-admin-password)"; exec docker-entrypoint.sh rabbitmq-server']
+    volumes: [rabbitmq-data:/var/lib/rabbitmq, "broker-secrets:/run/secrets:ro"]
+    depends_on: {secret-stage: {condition: service_completed_successfully}}
+    networks: [messaging]
+    healthcheck:
+      test: [CMD, rabbitmq-diagnostics, -q, ping]
+      interval: 10s
+      timeout: 5s
+      retries: 24
+      start_period: 20s
+    restart: unless-stopped
+    stop_grace_period: 45s
+    logging: *logging
+    mem_limit: 1024m
+    ports:
+      - "127.0.0.1:${DEVFLOW_RABBITMQ_AMQP_PORT:-5672}:5672"
+      - "127.0.0.1:${DEVFLOW_RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+  broker-bootstrap:
+    <<: *job
+    build: *tools-build
+    command: [broker-bootstrap]
+    environment:
+      DEVFLOW_MESSAGING_VIRTUAL_HOST: ${DEVFLOW_MESSAGING_VIRTUAL_HOST:-devflow}
+    volumes:
+      - type: bind
+        source: ${DEVFLOW_SECRETS_DIR}
+        target: /source
+        read_only: true
+        bind: {create_host_path: false}
+    networks: [messaging]
+    depends_on: {rabbitmq: {condition: service_healthy}}
+  topology:
+    image: ${DEVFLOW_NOTIFICATION_WORKER_IMAGE:?Set DEVFLOW_NOTIFICATION_WORKER_IMAGE}
+    command: [topology]
+    environment:
+      DOTNET_ENVIRONMENT: Development
+      Messaging__Host: rabbitmq
+      Messaging__Port: "5672"
+      Messaging__VirtualHost: ${DEVFLOW_MESSAGING_VIRTUAL_HOST:-devflow}
+      Messaging__Username: devflow-admin
+      Messaging__PasswordFile: /run/secrets/broker-admin-password
+      Messaging__Development: "true"
+      Messaging__UseTls: "false"
+      Messaging__QuorumSize: "1"
+      Observability__Enabled: "false"
+    volumes: ["topology-secrets:/run/secrets:ro"]
+    networks: [messaging]
+    depends_on: {broker-bootstrap: {condition: service_completed_successfully}}
+    restart: "no"
+    logging: *logging
+    build:
+      context: ../../..
+      dockerfile: Dockerfile.modules
+      target: notification-worker
+      args:
+        DOTNET_SDK_IMAGE: ${DEVFLOW_DOTNET_SDK_IMAGE}
+        DOTNET_RUNTIME_IMAGE: ${DEVFLOW_DOTNET_RUNTIME_IMAGE}
+  mailpit:
+    image: ${DEVFLOW_MAILPIT_IMAGE:?Set DEVFLOW_MAILPIT_IMAGE}
+    profiles: [mailpit]
+    networks: [messaging]
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 128m
+    ports:
+      - "127.0.0.1:${DEVFLOW_MAILPIT_SMTP_PORT:-11025}:1025"
+      - "127.0.0.1:${DEVFLOW_MAILPIT_HTTP_PORT:-18025}:8025"
+volumes:
+  rabbitmq-data: {}
+  broker-secrets: {}
+  topology-secrets: {}

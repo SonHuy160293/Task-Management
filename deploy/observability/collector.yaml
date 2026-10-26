@@ -1,0 +1,85 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 384
+    spike_limit_mib: 64
+  transform/safe:
+    error_mode: ignore
+    log_statements:
+      - context: resource
+        statements:
+          - keep_keys(resource.attributes, ["service.name", "service.namespace", "service.version", "deployment.environment.name"])
+      - context: log
+        statements:
+          - keep_keys(log.attributes, ["RequestName", "RequestType", "ElapsedMilliseconds", "Elapsed", "StatusCode", "CorrelationId", "RequestMethod", "RouteId", "ClusterId", "DestinationId", "GatewayErrorCode", "ForwarderErrorCode", "TraceId", "SpanId"])
+    trace_statements:
+      - context: resource
+        statements:
+          - keep_keys(resource.attributes, ["service.name", "service.namespace", "service.version", "deployment.environment.name"])
+      - context: span
+        statements:
+          - keep_keys(span.attributes, ["http.request.method", "http.response.status_code", "http.route", "http.method", "http.status_code", "db.system", "db.system.name", "cqrs.request_type", "cqrs.outcome", "error.type"])
+    metric_statements:
+      - context: resource
+        statements:
+          - keep_keys(resource.attributes, ["service.name", "service.namespace", "service.version", "deployment.environment.name"])
+      - context: datapoint
+        statements:
+          - keep_keys(datapoint.attributes, ["http.request.method", "http.response.status_code", "http.route", "error.type", "cqrs.request_type", "cqrs.outcome", "gc.heap.generation", "gc.collection.generation"])
+          - set(datapoint.attributes["service_name"], resource.attributes["service.name"])
+          - set(datapoint.attributes["deployment_environment"], resource.attributes["deployment.environment.name"])
+  batch:
+    timeout: 1s
+    send_batch_size: 512
+    send_batch_max_size: 1024
+
+exporters:
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+    timeout: 3s
+    sending_queue:
+      queue_size: 1024
+    retry_on_failure:
+      initial_interval: 1s
+      max_interval: 10s
+      max_elapsed_time: 60s
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+    timeout: 3s
+    sending_queue:
+      queue_size: 1024
+    retry_on_failure:
+      initial_interval: 1s
+      max_interval: 10s
+      max_elapsed_time: 60s
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    enable_open_metrics: true
+    metric_expiration: 5m
+    resource_to_telemetry_conversion:
+      enabled: false
+
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, transform/safe, batch]
+      exporters: [otlphttp/loki]
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, transform/safe, batch]
+      exporters: [otlp/tempo]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, transform/safe, batch]
+      exporters: [prometheus]
